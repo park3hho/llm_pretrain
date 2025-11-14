@@ -77,6 +77,7 @@ self.register_buffer('mask', torch.triu(torch.ones(CONTEXT_LENGTH, CONTEXT_LENGT
  [0, 0, 1, 1],
  [0, 0, 0, 1],
  [0, 0, 0, 0]]
+
     
 ## 순전파 (foward)
 ### 입력 형태
@@ -184,3 +185,80 @@ context_vec = self.out_proj(context_vec)
 헤드별 출력을 합쳐 원래 차원으로 되돌림.
 
 최종 출력 shape: (b, num_tokens, d_out)
+
+# [CD] Layer Normalization
+
+## Class 설명 및 초기화 부분
+### Class 설명
+``` Class 설명
+class LayerNorm(nn.Module):
+```
+- nn.Module을 새로 상속받아 새로운 PyTorch 레이어를 정의함.
+- 입력 텐서의 마지막 차원에 대한 정규화를 수행.
+
+### 초기화 부문
+```commandline
+    def __init__(self, emb_dim):
+        super().__init__()
+```
+- `emb_dim`은 **입력 벡터의 차원**
+- super().__init__()는 부모 클래스(nn.Module)의 초기화 함수를 호출합니다. PyTorch 모델 정의에서 필수
+
+>- emb_dim이 위에서 Multi-Head Attention에서 정의한 dim이랑 같은 수인건가
+
+### eps
+``` eps
+self.eps = 1e-5
+```
+
+> eps가 무슨 의미인데?
+
+
+### scale
+``` scale
+self.scale = nn.Parameter(torch.ones(emb_dim))
+self.shift = nn.Parameter(torch.zeros(emb_dim))
+```
+- `scale`은 학습 가능한 파라미터 γ (gamma)입니다.
+- 초기값은 모두 1로 설정되어 있으며, 레이어 정규화 후 출력에 곱해집니다.
+- nn.Parameter로 정의하면 학습 시 업데이트됩니다.
+
+- `shift`는 학습 가능한 파라미터 β (beta)입니다.
+- 초기값은 모두 0으로 설정되어 있으며, 레이어 정규화 후 출력에 더해집니다.
+- 마찬가지로 nn.Parameter로 학습됩니다.
+
+> 감마-베타와 스케일-쉬프트에 대해서 좀 더 자세히 이해할 것
+
+## 순전파 foward pass
+```foward pass
+def forward(self, x):
+```
+- forward 메서드는 순전파(forward pass)를 정의합니다.
+- x는 입력 텐서입니다. 보통 (batch_size, seq_len, emb_dim) 형태입니다.
+
+### 평균 계산
+```
+mean = x.mean(dim=-1, keepdim=True)
+```
+- 마지막 차원(emb_dim) 기준으로 평균을 계산
+- keepdim=True는 결과 텐서의 차원을 유지해서 나중에 브로드캐스트 연산
+- 예: (batch, seq_len, emb_dim) → (batch, seq_len, 1)
+ 
+### 분산 계산
+``` 분산 계산
+var = x.var(dim=-1, keepdim=True, unbiased=False)
+```
+
+### 정규화
+``` Normalization
+norm_x = (x - mean) / torch.sqrt(var + self.eps)
+```
+- 입력을 정규화(normalize)합니다.
+- 평균을 빼고, 분산의 제곱근(표준편차)으로 나눕니다.
+- eps를 더해서 0으로 나누는 문제를 방지합니다.
+- 이렇게 하면 norm_x의 마지막 차원 값들이 평균 0, 분산 1이 됩니다.
+
+### 적용
+``` shift와 scale 적용
+return self.scale * norm_x + self.shift
+```
