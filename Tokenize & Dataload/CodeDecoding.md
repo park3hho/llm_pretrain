@@ -63,7 +63,11 @@ self.dropout = nn.Dropout(DROP_RATE)
 - 여러 헤드의 출력을 다시 합쳐층 최종 출력으로 변환 / 여러 헤드를 합친 결과에
 마지막으로 적용되는 출력 투사 
 - Dropout으로 일부 연결을 끊어 과적합 방지(regularization)
-> regularization이 왜 필요한데? `d_model`이 무슨 의미인데?
+- 훈련 데이터에 과도하게 맞추어져 있어서(이 문제를 overfitting이라고 일컫음) 일반화 능력이 떨어짐
+- 이로 인해 "새로운 문장"에서 성능이 떨어질 수도 있음 그래서 Dropout을 사용.
+
+> `d_model`이 무슨 의미인데?
+>- d_model은 **Multi-Head Attention**의 전체 차원을 의미함.
 
 ### 
 ``` 
@@ -84,7 +88,7 @@ self.register_buffer('mask', torch.triu(torch.ones(CONTEXT_LENGTH, CONTEXT_LENGT
 ```
 b, num_tokens, d_in = x.shape
 ```
-- b: batch size
+- b: batch size [한 번에 처리하는 문장 개수, not 토큰의 개수]
 - num_tokens: 한 문장(시퀀스)의 토큰 수
 - d_in: 입력 임베딩 차원 > 계산 위도
 > 보통 몇개의 feature로 이루어져있는데?
@@ -134,18 +138,21 @@ keys = keys.transpose(1, 2)
 queries = queries.transpose(1, 2)
 values = values.transpose(1, 2)
 ```
-→ (b, NUM_HEADS, num_tokens, head_dim)
-- 이제 각 헤드별로 어텐션 계산 가능.
+(b, num_tokens, NUM_HEADS, self.head_dim) → (b, NUM_HEADS, num_tokens, head_dim)
+>- 솔직히 왜 나눠야 하는지에 대한 설명을 이해를 못했다. 
+>- 계산이 안된다는데 그냥 진행해도 되는거 아닌가 싶다가도 그냥 그러려니한다.
+>- 아무튼 이제 각 헤드별로 어텐션 계산 가능.
+>- 아 뒤에 그냥 2,3 이렇게 써야해서 그러네
 
-(5) 어텐션 스코어 계산
+### 어텐션 스코어 계산
+```attn_score
 attn_scores = queries @ keys.transpose(2, 3)
+```
 
+- 이 연산은 Q × Kᵀ (행렬 곱) 입니다.
+- 각 토큰이 다른 토큰과 얼마나 연관되는지를 나타냄.
 
-이 연산은 Q × Kᵀ (행렬 곱) 입니다.
-
-각 토큰이 다른 토큰과 얼마나 연관되는지를 나타냄.
-
-shape: (b, NUM_HEADS, num_tokens, num_tokens)
+`shape: (b, NUM_HEADS, num_tokens, num_tokens)`
 
 (6) 마스크 적용 (미래 정보 차단)
 mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
