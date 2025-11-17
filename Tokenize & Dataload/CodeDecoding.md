@@ -221,14 +221,14 @@ context_vec = self.out_proj(context_vec)
 # [CD] Layer Normalization
 
 ## Class 설명 및 초기화 부분
-### Class 설명
+### 1. Class 설명
 ``` Class 설명
 class LayerNorm(nn.Module):
 ```
 - nn.Module을 새로 상속받아 새로운 PyTorch 레이어를 정의함.
 - 입력 텐서의 마지막 차원에 대한 정규화를 수행.
 
-### 초기화 부문
+### 2. 초기화 부문
 ```commandline
     def __init__(self, emb_dim):
         super().__init__()
@@ -238,7 +238,7 @@ class LayerNorm(nn.Module):
 
 >- emb_dim이 위에서 Multi-Head Attention에서 정의한 dim이랑 같은 수인건가
 
-### eps
+### 3. eps
 ``` eps
 self.eps = 1e-5
 ```
@@ -246,7 +246,7 @@ self.eps = 1e-5
 > eps가 무슨 의미인데?
 
 
-### scale
+### 4. scale
 ``` scale
 self.scale = nn.Parameter(torch.ones(emb_dim))
 self.shift = nn.Parameter(torch.zeros(emb_dim))
@@ -268,7 +268,7 @@ def forward(self, x):
 - forward 메서드는 순전파(forward pass)를 정의합니다.
 - x는 입력 텐서입니다. 보통 (batch_size, seq_len, emb_dim) 형태입니다.
 
-### 평균 계산
+### 1. 평균 계산
 ```
 mean = x.mean(dim=-1, keepdim=True)
 ```
@@ -276,12 +276,12 @@ mean = x.mean(dim=-1, keepdim=True)
 - keepdim=True는 결과 텐서의 차원을 유지해서 나중에 브로드캐스트 연산
 - 예: (batch, seq_len, emb_dim) → (batch, seq_len, 1)
  
-### 분산 계산
+### 2. 분산 계산
 ``` 분산 계산
 var = x.var(dim=-1, keepdim=True, unbiased=False)
 ```
 
-### 정규화
+### 3. 정규화
 ``` Normalization
 norm_x = (x - mean) / torch.sqrt(var + self.eps)
 ```
@@ -290,7 +290,7 @@ norm_x = (x - mean) / torch.sqrt(var + self.eps)
 - eps를 더해서 0으로 나누는 문제를 방지합니다.
 - 이렇게 하면 norm_x의 마지막 차원 값들이 평균 0, 분산 1이 됩니다.
 
-### 적용
+### 4. 적용
 ``` shift와 scale 적용
 return self.scale * norm_x + self.shift
 ```
