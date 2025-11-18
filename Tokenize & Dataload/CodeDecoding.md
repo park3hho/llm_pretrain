@@ -26,6 +26,7 @@ class MultiHeadAttention(nn.Module):
 
 > nn.Module이 뭔데?
 >- nn.Module은 PyTorch에서 신경망(Neural Network)을 만들 때 사용하는 **모든 모델의 기본 클래스(base class)**
+
 ### 2. 헤드 개수 할당
 ``` 
 assert d_out % NUM_HEADS == 0, "d_out must be divisible by n_heads"
@@ -198,25 +199,29 @@ Softmax가 너무 큰 값일 때 거의 0과 1만 나오는 현상
 #### 해결방법
   - √dₖ로 나누기
 
-
-### 8. Value를 가중합
+### 8. Value를 가중합(Weighted Sum)
 ```
 context_vec = (attn_weights @ values).transpose(1, 2)
 ```
+- 각 토큰의 “문맥 정보”를 계산.
+- (b, num_tokens, NUM_HEADS, head_dim)
+> "QK"로 유사도 계산을 했는데 왜 다시 V(value)와 곱해서 최종 출력을 만드는 거지???
+> 
+> QKᵀ는 유사도(Attention_Score)을 구하는 단계 -> 각 토큰(단어) 간의 연관성을 파악하는 단계
+>> - Q: 내가 뭘 찾고 싶은가
+>> - K: 상대는 어떠한 정보를 갖고 있는가
+>> - QKᵀ[i, j]는 토큰 i가 j를 얼마나 참고해야 하는가?  
+>
+> 즉, V는 실제 문맥을 의미하며, QKᵀ를 V와 가중합 하는 것은 **"실제 문맥을 문맥 유사도로
+> 분석"**하는 것이라고 해석하면됨.
 
-각 토큰의 “문맥 정보”를 계산.
-
-(b, num_tokens, NUM_HEADS, head_dim)
-
-(9) 여러 헤드 결과 합치기
+### 9. 여러 헤드 결과 합치기
 ```
 context_vec = context_vec.reshape(b, num_tokens, self.d_out)
 context_vec = self.out_proj(context_vec)
 ```
-
-헤드별 출력을 합쳐 원래 차원으로 되돌림.
-
-최종 출력 shape: (b, num_tokens, d_out)
+- 헤드별 출력을 합쳐 원래 차원으로 되돌림.
+- 최종 출력 shape: (b, num_tokens, d_out)
 
 # [CD] Layer Normalization
 
@@ -225,7 +230,7 @@ context_vec = self.out_proj(context_vec)
 ``` Class 설명
 class LayerNorm(nn.Module):
 ```
-- nn.Module을 새로 상속받아 새로운 PyTorch 레이어를 정의함.
+- nn.Module을 새로 상속받아 새로운 PyTorch 레이어를 정의함.  
 - 입력 텐서의 마지막 차원에 대한 정규화를 수행.
 
 ### 2. 초기화 부문
