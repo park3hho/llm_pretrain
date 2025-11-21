@@ -1,4 +1,4 @@
-# [CD] Multi-Head Attention
+# [CD] 1. Multi-Head Attention
 Link: https://velog.io/@park2do/%EC%BD%94%EB%93%9C-%ED%8C%8C%ED%97%A4%EC%B9%98%ED%82%A4-Multi-Head-Attention
 
 Transformer의 핵심 구성요소인 “Multi-Head Attention” (다중 헤드 어텐션) 을 PyTorch로 직접 구현한 클래스.
@@ -225,7 +225,7 @@ context_vec = self.out_proj(context_vec)
 - 헤드별 출력을 합쳐 원래 차원으로 되돌림.
 - 최종 출력 shape: (b, num_tokens, d_out)
 
-# [CD] Layer Normalization
+# [CD] 2. Layer Normalization
 
 ## Class 설명 및 초기화 부분
 ### 1. Class 설명
@@ -337,3 +337,50 @@ norm_x = (x - mean) / torch.sqrt(var + self.eps)
 ``` shift와 scale 적용
 return self.scale * norm_x + self.shift
 ```
+
+# [CD] 3. GELU
+
+GELU는 ReLU부도 Tranformer에 더 적합한 함수
+
+입력 x가 클수록 더 통과시키고, 
+x가 작을 수록 확률적으로 0 근처에 보내는 함수
+
+## 전체 코드
+```GelU
+class GELU(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(
+            torch.sqrt(torch.tensor(2.0 / torch.pi)) *
+            (x + 0.044715 * torch.pow(x, 3))
+        ))
+```
+
+# [CD] 4. FeedFoward(FFN)
+
+여기의 FFN은 독립적으로 적용되는 작은 MLP
+
+## Code Overview
+```
+class FeedForward(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(EMB_DIM, 4 * EMB_DIM),
+            GELU(),
+            nn.Linear(4 * EMB_DIM, EMB_DIM),
+        )
+```
+
+## Expansion Embedding
+```
+nn.Linear(EMB_DIM → 4 × EMB_DIM),
+GELU(),
+nn.Linear(4×EMB_DIM → EMB_DIM)
+```
+
+- 입력 임베딩 크기를 4배로 확장하는 단계
+- GELU() 적용
+- 임베딩 크기를 다시 원래 상태로 축소 (Projection Back)
