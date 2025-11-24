@@ -240,7 +240,8 @@ class LayerNorm(nn.Module):
         super().__init__()
 ```
 - `emb_dim`은 **입력 벡터의 차원**
-- super().__init__()는 부모 클래스(nn.Module)의 초기화 함수를 호출합니다. PyTorch 모델 정의에서 필수
+- super().__init__()는 부모 클래스(nn.Module)의 초기화 함수를 호출. 
+- PyTorch 모델 정의에서 필수
 
 >- emb_dim이 위에서 Multi-Head Attention에서 정의한 dim이랑 같은 수인건가
 >- 맞아 같은 거임. 
@@ -573,20 +574,26 @@ self.trf_blocks = nn.Sequential(
 >- 여러 레이어를 연속적으로 실행하게 해주는 코드 : 트랜스포머 블록을 여러번 통과하게 만드는 코드 ***`NUM_LAYERS`만큼***
 >- 즉, 그냥 반복 실행시킨거라 생각하면 편함.
 
-### (6) Layer Scale 안정화
+### (6) LAYER *NORMALIZATION*
 ``` 
 self.final_norm = LayerNorm(EMB_DIM)
 ```
 - 모델의 마지막에 적용하는 LayerNorm
 - 토큰별 `EMB_DIM` 축을 정규화해 출력의 스케일을 안정화
 
-### (7) logits 생성
-``` logits
+### (7) Linear Transformation
+``` 선형변환
 self.out_head = nn.Linear(EMB_DIM, VOCAB_SIZE, bias=False)
 ```
 - `EMB_DIM` -> `VOCAB_SIZE`로 선형 변환 및 각 토큰 위치에 `vocab`에 따른 `logits` 생성
 - `bias=False`의 이유는 출력 중 편향을 생략하거나 embedding과  weight-tying(가중치 공유)를 고려하기 때문이다.
 
 > vocab이 뭔데?, logits도 뭔데?
+>- `vocab`: 단어사전: 모델이 인식할 수 있는 모든 토큰 집합
+>
+> logits(로그잇)
+>- 모델이 각 토큰이 다음에 올 확률을 얼마나 "좋아하는지" 점수로 나타낸 것 
+>- softmax 직전의 값
+>- 가중치임 가중치, 근데 가중합을 1로 하지 않은.
 
 ## Forward (실제 데이터가 흐르는 경로)
