@@ -496,3 +496,87 @@ x = self.drop_shortcut(x) # (4) Dropout 적용
 x = x + shortcut    # (5) Residual Add
 ```
 - 마무리 단계
+
+
+# [CD] 7. GPT Model
+Summary: 
+
+## Class Definition
+### (1) Constructor (생성자)
+``` Constructor
+class GPTModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+```
+- `GPTModel`이라는 PyTorch 모듈을 정의.
+
+### (2) Token_EMB Layer (토큰 임베딩 레이어)
+```
+self.tok_emb = nn.Embedding(VOCAB_SIZE, EMB_DIM)
+```
+- 토큰 ID를 `EMB_DIM` 길이의 실수 벡터로 변환
+
+> nn.Embedding은 내장 함수인가?
+>- "ㅇㅇ" 내장 함수임, 토큰들을 `EMB_DIM`에 따른 차원의 "의미 벡터"로 바꿔주는 역할
+>
+> 이게 뭔소리 -> 입력 in_idx 가 (batch_size, seq_len)일 때 tok_embeds는 (batch_size, seq_len, EMB_DIM)이 됩니다. 
+>- `in_idx`는 토크나이즈 된 문장. `batch_size`는 문장의 개수. `seq_len`은 문장의 길이.
+>
+> 그러면 문장이 길어지면 중간에서 잘라야하는데 발생하는 문제가 없는가?
+>- 없다
+>> 이유.
+>>- nn.Embedding은 **토큰 자체**를 임베딩 할 뿐 위치 정보는 알 필요 없음.
+>>- **문장의 순서 정보**는 Position Embedding이 처리함.
+>>> token_embeds: 내용을 임베딩
+>>> pos_embeds: 순서/위치 정보를 제공.
+>>> 문맥 관계는: Self-Attention
+> 
+>- GPT 학습 흐름: Embedding → Transformer → Loss → Backprop  
+>- 문장을 잘라서 `seq_len`을 맞추는 것은 Transformer의 ***기본 규칙***
+
+### (3) Positional Embedding (위치 임베딩)
+``` Positional Embedding
+self.pos_emb = nn.Embedding(CONTEXT_LENGTH, EMB_DIM)
+```
+- `CONTEXT_LENGTH(최대 문맥  길이)`의 각 위치에 대해 EMB_DIM 크기 벡터를 학습함.
+- `seq_len`이 `CONTEXT_LENGTH`보다 커지면 인덱스 오류가 발생.
+
+> `seq_len`과 `CONTEXT_LENGTH`의 관계성?
+
+### (4) Dropout Layer (일반화 과정)
+``` Dropout
+self.drop_emb = nn.Dropout(DROP_RATE)
+```
+- 임베딩 직후 적용할 Dropout Layer, 학습 시 일부 차원을 랜덤하게 0으로 만들어 일반화.
+- 추론(inference)에서는 자동으로 비활성화.
+
+> 추론 과정은 어디서 정확히 진행되는가? Pretrain에서는 안하지 않나? `Reasoning`
+
+### (5) self.final_norm
+```
+self.trf_blocks = nn.Sequential(
+    *[TransformerBlock() for _ in range(NUM_LAYERS)])
+```
+- `NUM_LAYERS`개의 TransformerBlock을 순서대로 담은 nn.Sequential.
+- 각 블록은 (LayerNorm → MHA → Residual → LayerNorm → FFN → Residual) 같은 구조로 구성
+- I/O Shape은 블록마다 `batch_size, seq_len, EMB_DIM`으로 유지됨.
+
+> 일단 다 이해가 안감
+
+### (6) Layer Scale 안정화
+``` 
+self.final_norm = LayerNorm(EMB_DIM)
+```
+- 모델의 마지막에 적용하는 LayerNorm
+- 토큰별 `EMB_DIM` 축을 정규화해 출력의 스케일을 안정화
+
+### (7) logits 생성
+``` logits
+self.out_head = nn.Linear(EMB_DIM, VOCAB_SIZE, bias=False)
+```
+- `EMB_DIM` -> `VOCAB_SIZE`로 선형 변환 및 각 토큰 위치에 `vocab`에 따른 `logits` 생성
+- `bias=False`의 이유는 출력 중 편향을 생략하거나 embedding과  weight-tying(가중치 공유)를 고려하기 때문이다.
+
+> vocab이 뭔데?, logits도 뭔데?
+
+## Forward (실제 데이터가 흐르는 경로)
