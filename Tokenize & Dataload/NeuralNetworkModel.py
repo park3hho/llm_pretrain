@@ -12,21 +12,21 @@ QKV_BIAS = False  # Query-key-value bias (weight tying)
 import torch.nn as nn
 
 
-class MultiHeadAttention(nn.Module):
+class MultiHeadAttention(nn.Module): # MHA 정의
     def __init__(self, d_in, d_out):
-        super().__init__()
+        super().__init__() # 기본 함수
 
-        assert d_out % NUM_HEADS == 0, "d_out must be divisible by n_heads"
+        assert d_out % NUM_HEADS == 0, "d_out must be divisible by n_heads" # 나머지 없게끔 헤드를 나눔
 
-        self.d_out = d_out
-        self.head_dim = d_out // NUM_HEADS
+        self.d_out = d_out # 출력 차원 수
+        self.head_dim = d_out // NUM_HEADS # 헤드 차원 개수, (총 출력 차원 % 헤드 개수)
 
-        self.W_query = nn.Linear(d_in, d_out, bias=QKV_BIAS)
-        self.W_key = nn.Linear(d_in, d_out, bias=QKV_BIAS)
-        self.W_value = nn.Linear(d_in, d_out, bias=QKV_BIAS)
-        self.out_proj = nn.Linear(d_out, d_out)
-        self.dropout = nn.Dropout(DROP_RATE)
-        self.register_buffer('mask', torch.triu(torch.ones(CONTEXT_LENGTH, CONTEXT_LENGTH), diagonal=1))
+        self.W_query = nn.Linear(d_in, d_out, bias=QKV_BIAS) # Q 선형 변환
+        self.W_key = nn.Linear(d_in, d_out, bias=QKV_BIAS) # K 선형 변환
+        self.W_value = nn.Linear(d_in, d_out, bias=QKV_BIAS) # V 선형 변환
+        self.out_proj = nn.Linear(d_out, d_out) # 차원 합치기 = 최종 선형 투사
+        self.dropout = nn.Dropout(DROP_RATE) # 과적합 방지
+        self.register_buffer('mask', torch.triu(torch.ones(CONTEXT_LENGTH, CONTEXT_LENGTH), diagonal=1)) # 마스킹
     def forward(self, x):
         b, num_tokens, d_in = x.shape
 
