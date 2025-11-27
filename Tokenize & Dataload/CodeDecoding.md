@@ -606,3 +606,63 @@ self.out_head = nn.Linear(EMB_DIM, VOCAB_SIZE, bias=False)
 > `weight-tying`을 위한 필수 조건 중 하나가 `bias=False`인 것이다.
 
 ## Forward (실제 데이터가 흐르는 경로)
+### (1) 인자 부분
+``` in_idx
+def forward(self, in_idx):
+```
+- in_idx = Token ID의 정수 텐서
+
+### (2) 입력 텐서 열기
+``` 뭐임 이건
+batch_size, seq_len = in_idx.shape
+``` 
+- 입력 텐서의 두 차원을 만듬
+- 이후 연산에서 텐서 크기 추적에 쓰임
+- `in_idx.shape == (4, 16)` 이면 `batch_size=4`, `seq_len=16`
+
+> 텐서 크기 추적에 쓰인다는 것이 무슨 의미임?
+>- 그냥 재사용하기 쉽게 변수를 저장해두었다는 의미임 ㅋㅋ;
+
+### (3) 토큰 임베딩
+``` 토큰 임베딩
+tok_embeds = self.tok_emb(in_idx)
+```
+- 제곧내
+
+### (4) 포지션 임베딩
+``` 포지션 임베딩
+pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
+```
+- 제곧내
+
+### (5) x값 정의
+``` x값 정의
+x = tok_embeds + pos_embeds
+```
+- `임베딩된` 토큰과 위치값 정의
+> x 값 정의하는게 잔차 연결에서 이걸 써야하기 때문임. 근데 생각해보면 FFNN이랑 MHA를 둘 다 통과시키는데 두번 갱신되는건가?
+>- ㅇㅇ 
+
+### (6) OVERFITTING 과적합 방지
+``` 과적합방지
+x = self.drop_emb(x)
+```
+- 제곧내
+
+### (7) 트랜스포머 블록 실행 
+``` EXECUTE TRANSFORMER-BLCOK
+x = self.trf_blocks(x)
+```
+- 제곧내
+
+### (8) 최종 정규화
+```final_norm
+x = self.final_norm(x)
+```
+- 제곧내
+
+### (9) 로그잇 생성
+``` 로그잇
+logits = self.out_head(x)
+```
+- 선형 변환된 정보를 logits(로그잇)으로 만들어서 내보냄.

@@ -112,36 +112,36 @@ class TransformerBlock(nn.Module): # Transformer BLOCK
         x = self.norm1(x) # Pre-LN
         x = self.att(x) # MHA
         x = self.drop_shortcut(x) # PREVENTING OVERFITTING
-        x = x + shortcut # RESIDUAL ADD
+        x = x + shortcut # RESIDUAL ADD in Korean "잔차 계산"
 
         shortcut = x # RESIDUAL DEFINITION
         x = self.norm2(x) # Pre-LN
         x = self.ff(x) # FFNN
         x = self.drop_shortcut(x) # PREVENTING OVERFTTING
-        x = x + shortcut # RESIDUAL ADD
+        x = x + shortcut # RESIDUAL ADD in Korean "잔차 계산"
 
         return x
 
 class GPTModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.tok_emb = nn.Embedding(VOCAB_SIZE, EMB_DIM)
-        self.pos_emb = nn.Embedding(CONTEXT_LENGTH, EMB_DIM)
-        self.drop_emb = nn.Dropout(DROP_RATE)
+        self.tok_emb = nn.Embedding(VOCAB_SIZE, EMB_DIM) # 토큰 임베딩 정의
+        self.pos_emb = nn.Embedding(CONTEXT_LENGTH, EMB_DIM) # 위치 임베딩 정의
+        self.drop_emb = nn.Dropout(DROP_RATE) # 예외 등장 비율이라 생각하면 됨. - 과적합 방지
 
         self.trf_blocks = nn.Sequential(
-            *[TransformerBlock() for _ in range(NUM_LAYERS)])
+            *[TransformerBlock() for _ in range(NUM_LAYERS)]) # 트랜스포머 블록을 몇번 실행할 것이냐,
 
-        self.final_norm = LayerNorm(EMB_DIM)
-        self.out_head = nn.Linear(EMB_DIM, VOCAB_SIZE, bias=False)
+        self.final_norm = LayerNorm(EMB_DIM) # 마지막 정규화 / EMB_DIM을 정규화해 출력의 스케일을 안정화
+        self.out_head = nn.Linear(EMB_DIM, VOCAB_SIZE, bias=False) # 선형변환, 로그잇 생성.
 
     def forward(self, in_idx):
-        batch_size, seq_len = in_idx.shape
-        tok_embeds = self.tok_emb(in_idx)
-        pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
-        x = tok_embeds + pos_embeds  # Shape [batch_size, num_tokens, emb_size]
-        x = self.drop_emb(x)
-        x = self.trf_blocks(x)
-        x = self.final_norm(x)
-        logits = self.out_head(x)
+        batch_size, seq_len = in_idx.shape # in_idx 적용
+        tok_embeds = self.tok_emb(in_idx) # 토큰 임베딩
+        pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device)) # 위치 정보 임베딩
+        x = tok_embeds + pos_embeds  # Shape [batch_size, num_tokens, emb_size] / x 값 정의 (감마 베타)
+        x = self.drop_emb(x) # 과적합 방지
+        x = self.trf_blocks(x) # 트랜스포머 블록
+        x = self.final_norm(x) # 마지막 정규화
+        logits = self.out_head(x) # 선형변환된 정보를 내보내기 위한 작업
         return logits
