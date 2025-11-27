@@ -95,30 +95,30 @@ class FeedForward(nn.Module): # FFNN, 히든레이어층이 입력의 퍼셉트�
         return self.layers(x)
 
 
-class TransformerBlock(nn.Module):
+class TransformerBlock(nn.Module): # Transformer BLOCK
     def __init__(self):
         super().__init__()
-        self.att = MultiHeadAttention(
+        self.att = MultiHeadAttention( # MHA 실행을 "정의하는" 함수
             d_in=EMB_DIM,
             d_out=EMB_DIM)
 
-        self.ff = FeedForward()
-        self.norm1 = LayerNorm(EMB_DIM)
-        self.norm2 = LayerNorm(EMB_DIM)
-        self.drop_shortcut = nn.Dropout(DROP_RATE)
+        self.ff = FeedForward() # FFNN 실행을 "정의하는" 함수
+        self.norm1 = LayerNorm(EMB_DIM) # 첫번째 레이어 정규화를 "정의하는" 함수
+        self.norm2 = LayerNorm(EMB_DIM) # 두번째 레이어 정규화를 "정의하는" 함수
+        self.drop_shortcut = nn.Dropout(DROP_RATE) # 과적합 방지
 
     def forward(self, x):
-        shortcut = x
-        x = self.norm1(x)
-        x = self.att(x)
-        x = self.drop_shortcut(x)
-        x = x + shortcut
+        shortcut = x # RESIDUAL DEFINITION
+        x = self.norm1(x) # Pre-LN
+        x = self.att(x) # MHA
+        x = self.drop_shortcut(x) # PREVENTING OVERFITTING
+        x = x + shortcut # RESIDUAL ADD
 
-        shortcut = x
-        x = self.norm2(x)
-        x = self.ff(x)
-        x = self.drop_shortcut(x)
-        x = x + shortcut
+        shortcut = x # RESIDUAL DEFINITION
+        x = self.norm2(x) # Pre-LN
+        x = self.ff(x) # FFNN
+        x = self.drop_shortcut(x) # PREVENTING OVERFTTING
+        x = x + shortcut # RESIDUAL ADD
 
         return x
 
