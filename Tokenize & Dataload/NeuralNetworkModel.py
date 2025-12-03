@@ -142,7 +142,7 @@ class GPTModel(nn.Module):
         tok_embeds = self.tok_emb(in_idx) # 토큰 임베딩
         pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device)) # 위치 정보 임베딩
         x = tok_embeds + pos_embeds  # Shape [batch_size, num_tokens, emb_size] / x 값 정의 (감마 베타)
-        x = self.drop_emb(x) # 과적합 방지g
+        x = self.drop_emb(x) # 과적합 방지
         x = self.trf_blocks(x) # 트랜스포머 블록
         x = self.final_norm(x) # 마지막 정규화
         logits = self.out_head(x) # 선형변환된 정보를 내보내기 위한 작업

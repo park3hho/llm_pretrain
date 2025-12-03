@@ -45,7 +45,7 @@ with open("../DataSet/Cleaned_Dataset/cleaned_02 Harry Potter and the Chamber of
     txt = file.read()
 
 dataset = MyDataset(txt, max_length = 32, stride = 4)
-
+print(len(dataset))
 train_loader = DataLoader(dataset, batch_size=128, shuffle=True, drop_last=True)
 
 # 주의: 여기서는 코드를 단순화하기 위해 test, valid는 생략

@@ -2,44 +2,57 @@ from tokenizeNdataload import train_loader
 from NeuralNetworkModel import GPTModel
 
 import torch
+import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#device = "cpu"
-print(device)
+print(f"Device: {device}")
 
 torch.manual_seed(123)
-model = GPTModel()
-model.to(device)
+model = GPTModel().to(device)
+
 optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
 
 tokens_seen, global_step = 0, -1
-
 losses = []
 
-for epoch in range(20):
-    model.train()  # Set model to training mode
+start_time = time.time()  # 전체 학습 시간 측정 시작
 
+for epoch in range(20):
+    model.train()
     epoch_loss = 0
+
+    epoch_start = time.time()  # epoch 시간 측정 시작
+
     for input_batch, target_batch in train_loader:
-        optimizer.zero_grad()  # Reset loss gradients from previous batch iteration
+        optimizer.zero_grad()
+
         input_batch, target_batch = input_batch.to(device), target_batch.to(device)
 
         logits = model(input_batch)
         loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
         epoch_loss += loss.item()
-        loss.backward()  # Calculate loss gradients
-        optimizer.step()  # Update model weights using loss gradients
+
+        loss.backward()
+        optimizer.step()
+
         tokens_seen += input_batch.numel()
         global_step += 1
 
         if global_step % 1000 == 0:
-            print(f"Tokens seen: {tokens_seen}")
-        # Optional evaluation step
+            elapsed = time.time() - start_time
+            print(f"[Step {global_step}] Tokens seen: {tokens_seen:,}, Total elapsed: {elapsed:.2f} sec")
 
     avg_loss = epoch_loss / len(train_loader)
     losses.append(avg_loss)
-    print(f"Epoch: {epoch + 1}, Loss: {avg_loss}")
-    torch.save(model.state_dict(), "model_" + str(epoch + 1).zfill(3) + ".pth")
 
-# 주의: 여기서는 편의상 모든 데이터를 train에 사용하였습니다.
-#      ML에서는 일부 데이터를 validation에 사용하는 것이 일반적입니다.
+    epoch_time = time.time() - epoch_start  # epoch 소요 시간
+
+    print(f"\nEpoch {epoch + 1} completed.")
+    print(f" ➤ Avg Loss: {avg_loss:.4f}")
+    print(f" ➤ Epoch Time: {epoch_time:.2f} sec")
+    print(f" ➤ Total Time Elapsed: {time.time() - start_time:.2f} sec\n")
+
+    torch.save(model.state_dict(), f"model_{str(epoch + 1).zfill(3)}.pth")
+
+print("\nTraining Finished!")
+print(f"Total Training Time: {time.time() - start_time:.2f} sec")
