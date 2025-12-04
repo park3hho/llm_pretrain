@@ -32,7 +32,7 @@ class MultiHeadAttention(nn.Module): # MHA 정의
     def forward(self, x):
         b, num_tokens, d_in = x.shape
 
-        keys = self.W_key(x)  # (b, num_tokens, d_out)
+        keys = self.W_key(x)  # K shape = (b, num_tokens, d_out)
         queries = self.W_query(x) # Q
         values = self.W_value(x)  # V
 
@@ -54,7 +54,7 @@ class MultiHeadAttention(nn.Module): # MHA 정의
 
         context_vec = (attn_weights @ values).transpose(1, 2) # Weighted sum QK-V 연산
 
-        context_vec = context_vec.reshape(b, num_tokens, self.d_out) # 원래 차원으로 합치기
+        context_vec = context_vec.reshape(b, num_tokens, self.d_out) # 원래 모양으로 되돌리기 / 벡터
         context_vec = self.out_proj(context_vec) # 총 투사
 
         return context_vec

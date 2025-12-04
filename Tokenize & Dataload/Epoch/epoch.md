@@ -323,3 +323,5 @@ steps = num_seq / batch_size = 32122 / 128 = 251
 - 총 FLOPs ≈ 1.13T × 642,440 ≈ 7.25 × 10¹⁷ FLOPs 
 
 즉, 20 epoch 동안 7.25e17 floating-point 연산량을 수행한 셈입니다. (70경)
+
+연산량에 영향을 주는 것들. 
